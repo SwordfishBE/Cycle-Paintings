@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "cycle_paintings-test",
+  "version": "1.0.0",
+  "name": "Cycle Paintings Tests",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["net.cycle_paintings.FastPaintingFixture"],
+    "fabric-gametest": ["net.cycle_paintings.CyclePaintingsGameTests"]
+  }
+}

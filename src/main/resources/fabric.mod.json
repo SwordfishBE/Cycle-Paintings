@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "cycle_paintings",
+  "version": "${version}",
+  "name": "Cycle Paintings",
+  "description": "Cycle placed paintings of the same size with a painting in hand. Sneak to cycle backwards. No Collective required.",
+  "authors": ["SwordfishBE"],
+  "contact": {
+    "homepage": "https://github.com/SwordfishBE/Cycle-Paintings",
+    "sources": "https://github.com/SwordfishBE/Cycle-Paintings",
+    "email": "swordfishbe@locutus.net"
+  },
+  "license": "AGPL-3.0",
+  "icon": "assets/cycle_paintings/icon.png",
+  "environment": "*",
+  "entrypoints": { "main": ["net.cycle_paintings.CyclePaintings"] },
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "26.3",
+    "java": ">=25",
+    "fabric-api": ">=0.163.0+26.3"
+  },
+  "breaks": { "cyclepaintings": "*" }
+}
