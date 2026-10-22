@@ -3,11 +3,14 @@ package net.cycle_paintings;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.commands.Commands;
+import net.minecraft.network.chat.Component;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.InteractionHand;
@@ -34,14 +37,29 @@ public final class CyclePaintings implements ModInitializer {
         ServerLifecycleEvents.SERVER_STOPPED.register(CYCLES::remove);
         UseEntityCallback.EVENT.register((player, world, hand, entity, hit) -> cycleEntity(player, world, hand, entity));
         UseBlockCallback.EVENT.register(FastPaintingsCompat::interact);
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
+                dispatcher.register(Commands.literal(MOD_ID)
+                        .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                        .then(Commands.literal("reload").executes(context -> {
+                            var source = context.getSource();
+                            if (reload(source.getServer())) {
+                                source.sendSuccess(() -> Component.literal("[Cycle Paintings] Configuration reloaded."), false);
+                                return 1;
+                            }
+                            source.sendFailure(Component.literal("[Cycle Paintings] Reload failed. Previous settings remain active; check the server log."));
+                            return 0;
+                        }))));
         String version = FabricLoader.getInstance().getModContainer(MOD_ID).orElseThrow()
                 .getMetadata().getVersion().getFriendlyString();
         LOGGER.info("[Cycle Paintings] Mod initialized. Version: {}", version);
     }
 
-    private static void reload(MinecraftServer server) {
-        var config = ModConfig.load(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID + ".json"));
-        CYCLES.put(server, new PaintingCycle(server.registryAccess().lookupOrThrow(Registries.PAINTING_VARIANT), config));
+    private static boolean reload(MinecraftServer server) {
+        var result = ModConfig.loadResult(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID + ".json"));
+        if (result.success() || !CYCLES.containsKey(server)) {
+            CYCLES.put(server, new PaintingCycle(server.registryAccess().lookupOrThrow(Registries.PAINTING_VARIANT), result.config()));
+        }
+        return result.success();
     }
 
     static PaintingCycle cycle(Level level) { return CYCLES.get(level.getServer()); }

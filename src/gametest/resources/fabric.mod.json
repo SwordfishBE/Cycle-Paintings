@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "cycle_paintings-test",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "name": "Cycle Paintings Tests",
   "environment": "*",
   "entrypoints": {

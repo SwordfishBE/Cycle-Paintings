@@ -22,11 +22,17 @@ record ModConfig(String ignorePaintingsInCycleIdentifier, boolean showRegistered
             """;
 
     static ModConfig load(Path path) {
+        return loadResult(path).config();
+    }
+
+    record LoadResult(ModConfig config, boolean success) {}
+
+    static LoadResult loadResult(Path path) {
         try {
             if (Files.notExists(path)) {
                 Files.createDirectories(path.toAbsolutePath().getParent());
                 Files.writeString(path, TEMPLATE, StandardOpenOption.CREATE_NEW);
-                return DEFAULT;
+                return new LoadResult(DEFAULT, true);
             }
             try (var reader = Files.newBufferedReader(path)) {
                 JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
@@ -47,12 +53,12 @@ record ModConfig(String ignorePaintingsInCycleIdentifier, boolean showRegistered
                         throw new IllegalArgumentException("showRegisteredPaintingsDebug must be a boolean");
                     debug = value.getAsBoolean();
                 }
-                return new ModConfig(ignored, debug);
+                return new LoadResult(new ModConfig(ignored, debug), true);
             }
         } catch (IOException | RuntimeException exception) {
-            CyclePaintings.LOGGER.warn("[Cycle Paintings] Could not load config {}; using defaults. Existing files are preserved.",
+            CyclePaintings.LOGGER.warn("[Cycle Paintings] Could not load config {}. Existing files are preserved.",
                     path, exception);
-            return DEFAULT;
+            return new LoadResult(DEFAULT, false);
         }
     }
 

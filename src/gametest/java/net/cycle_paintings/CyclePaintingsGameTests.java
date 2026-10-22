@@ -167,6 +167,45 @@ public class CyclePaintingsGameTests {
     }
 
     @GameTest
+    public void reloadCommandPermissionsFeedbackAndFailure(GameTestHelper h) throws Exception {
+        var server = h.getLevel().getServer();
+        var dispatcher = server.getCommands().getDispatcher();
+        var messages = new ArrayList<String>();
+        var output = new net.minecraft.commands.CommandSource() {
+            public void sendSystemMessage(net.minecraft.network.chat.Component message) { messages.add(message.getString()); }
+            public boolean acceptsSuccess() { return true; }
+            public boolean acceptsFailure() { return true; }
+            public boolean shouldInformAdmins() { return false; }
+        };
+        var source = server.createCommandSourceStack().withSource(output)
+                .withPermission(net.minecraft.server.permissions.LevelBasedPermissionSet.GAMEMASTER);
+        try {
+            dispatcher.execute("cycle_paintings reload", source.withPermission(net.minecraft.server.permissions.LevelBasedPermissionSet.ALL));
+            h.fail("Non-operators must not be allowed to reload");
+        } catch (com.mojang.brigadier.exceptions.CommandSyntaxException expected) {
+            // Permission failures should prevent command execution entirely.
+        }
+        var path = net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("cycle_paintings.json");
+        byte[] original = Files.readAllBytes(path);
+        try {
+            Files.writeString(path, "{\"ignorePaintingsInCycleIdentifier\":\"minecraft,cycle_paintings-test\"}");
+            h.assertTrue(dispatcher.execute("cycle_paintings reload", source) == 1, "Operator reload succeeds");
+            h.assertTrue(messages.getLast().equals("[Cycle Paintings] Configuration reloaded."), "Success feedback has required prefix");
+            h.assertTrue(CyclePaintings.cycle(h.getLevel()).next(group(h).getFirst(), false) == null, "Changed exclusions take effect immediately");
+            var active = CyclePaintings.cycle(h.getLevel());
+            Files.writeString(path, "{ invalid");
+            h.assertTrue(dispatcher.execute("cycle_paintings reload", source) == 0, "Invalid config returns failure");
+            h.assertTrue(messages.getLast().startsWith("[Cycle Paintings] Reload failed."), "Failure feedback has required prefix");
+            h.assertTrue(CyclePaintings.cycle(h.getLevel()) == active, "Failed reload keeps previous settings");
+            h.assertTrue(Files.readString(path).equals("{ invalid"), "Failed reload preserves file");
+        } finally {
+            Files.write(path, original);
+            dispatcher.execute("cycle_paintings reload", source);
+        }
+        h.succeed();
+    }
+
+    @GameTest
     public void configCreationAndPreservation(GameTestHelper h) throws Exception {
         var dir = Files.createTempDirectory("cycle-paintings-test-");
         var path = dir.resolve("config.json");
