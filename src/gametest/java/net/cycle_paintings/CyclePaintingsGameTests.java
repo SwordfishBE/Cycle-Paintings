@@ -27,6 +27,26 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
 public class CyclePaintingsGameTests {
+    @GameTest
+    public void supportedMinecraftVersionBoundaries(GameTestHelper h) throws Exception {
+        var metadata = net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("cycle_paintings")
+                .orElseThrow().getMetadata();
+        var dependency = metadata.getDependencies().stream()
+                .filter(value -> value.getKind() == net.fabricmc.loader.api.metadata.ModDependency.Kind.DEPENDS
+                        && value.getModId().equals("minecraft")).findFirst().orElseThrow();
+        for (String raw : List.of("26.4-snapshot-6", "26.4-snapshot-7", "26.4-snapshot-10", "26.4-pre-1", "26.4-rc-1", "26.4")) {
+            String normalized = net.fabricmc.loader.impl.game.minecraft.McVersionLookup.normalizeVersion(raw,
+                    net.fabricmc.loader.impl.game.minecraft.McVersionLookup.getRelease(raw));
+            h.assertTrue(dependency.matches(net.fabricmc.loader.api.Version.parse(normalized)), "Must allow " + raw);
+        }
+        for (String raw : List.of("26.3", "26.4-snapshot-1", "26.4-snapshot-5", "26.4.1-pre-1", "26.4.1", "26.5-snapshot-1", "26.5", "27.1")) {
+            String normalized = net.fabricmc.loader.impl.game.minecraft.McVersionLookup.normalizeVersion(raw,
+                    net.fabricmc.loader.impl.game.minecraft.McVersionLookup.getRelease(raw));
+            h.assertFalse(dependency.matches(net.fabricmc.loader.api.Version.parse(normalized)), "Must reject " + raw);
+        }
+        h.succeed();
+    }
+
     private List<Holder<PaintingVariant>> group(GameTestHelper h) {
         List<Holder<PaintingVariant>> result = new ArrayList<>();
         for (var holder : h.getLevel().registryAccess().lookupOrThrow(Registries.PAINTING_VARIANT)

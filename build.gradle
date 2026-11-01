@@ -4,11 +4,15 @@ plugins {
 version = project.mod_version
 group = project.maven_group
 base { archivesName = project.archives_base_name }
-repositories { mavenCentral() }
+repositories {
+    mavenCentral()
+    maven { url = 'https://maven.terraformersmc.com/releases/' }
+}
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+    localRuntime "com.terraformersmc:modmenu:${project.modmenu_version}"
 }
 def resourceVersion = project.version.toString()
 def licenseName = "LICENSE_${project.archives_base_name}"
@@ -21,6 +25,7 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 java {
+    toolchain.languageVersion = JavaLanguageVersion.of(25)
     withSourcesJar()
     sourceCompatibility = JavaVersion.VERSION_25
     targetCompatibility = JavaVersion.VERSION_25
