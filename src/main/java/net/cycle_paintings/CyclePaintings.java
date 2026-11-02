@@ -64,6 +64,26 @@ public final class CyclePaintings implements ModInitializer {
 
     static PaintingCycle cycle(Level level) { return CYCLES.get(level.getServer()); }
 
+    static ModConfig configForEditing() throws java.io.IOException {
+        return ModConfig.forEditing(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID + ".json"));
+    }
+
+    // An integrated server caller schedules this on the server thread; menu drafts are immutable.
+    static Component saveEditedConfig(ModConfig edited, MinecraftServer server) {
+        try {
+            var replacement = server == null ? null : new PaintingCycle(
+                    server.registryAccess().lookupOrThrow(Registries.PAINTING_VARIANT), edited);
+            ModConfig.save(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID + ".json"), edited);
+            if (server != null) CYCLES.put(server, replacement);
+            return Component.literal(server == null
+                    ? "[Cycle Paintings] Configuration saved. Changes apply when you open a singleplayer world."
+                    : "[Cycle Paintings] Configuration saved and applied.");
+        } catch (java.io.IOException | RuntimeException exception) {
+            LOGGER.warn("[Cycle Paintings] Could not save configuration. Previous settings remain active.", exception);
+            return Component.literal("[Cycle Paintings] Could not save configuration. Previous settings remain active; check the log.");
+        }
+    }
+
     static boolean canCycle(Player player, InteractionHand hand) {
         return !player.isSpectator() && player.mayBuild() && player.getItemInHand(hand).is(Items.PAINTING);
     }

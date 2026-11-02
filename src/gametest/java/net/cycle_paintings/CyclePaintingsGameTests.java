@@ -226,6 +226,32 @@ public class CyclePaintingsGameTests {
     }
 
     @GameTest
+    public void menuSavePreservesUnknownSettingsAndBrokenFiles(GameTestHelper h) throws Exception {
+        var directory = Files.createTempDirectory("cycle-paintings-editor-");
+        var path = directory.resolve("config.json");
+        try {
+            Files.writeString(path, "{\"ignorePaintingsInCycleIdentifier\":\"\",\"futureOption\":{\"value\":73}}");
+            var edited = new ModConfig("minecraft:kebab", true);
+            ModConfig.save(path, edited);
+            h.assertTrue(ModConfig.forEditing(path).equals(edited), "Both editor settings are saved");
+            h.assertTrue(Files.readString(path).contains("futureOption"), "Unknown settings retained");
+            try (var files = Files.list(directory)) {
+                h.assertTrue(files.count() == 1, "Temporary save files are cleaned up");
+            }
+            Files.writeString(path, "{ broken");
+            try {
+                ModConfig.save(path, edited);
+                h.fail("Editor must reject a malformed existing config");
+            } catch (java.io.IOException expected) {}
+            h.assertTrue(Files.readString(path).equals("{ broken"), "Malformed config never overwritten");
+        } finally {
+            Files.deleteIfExists(path);
+            Files.deleteIfExists(directory);
+        }
+        h.succeed();
+    }
+
+    @GameTest
     public void configCreationAndPreservation(GameTestHelper h) throws Exception {
         var dir = Files.createTempDirectory("cycle-paintings-test-");
         var path = dir.resolve("config.json");

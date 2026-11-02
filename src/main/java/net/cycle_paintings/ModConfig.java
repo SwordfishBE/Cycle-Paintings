@@ -27,7 +27,7 @@ record ModConfig(String ignorePaintingsInCycleIdentifier, boolean showRegistered
 
     record LoadResult(ModConfig config, boolean success) {}
 
-    static LoadResult loadResult(Path path) {
+    static synchronized LoadResult loadResult(Path path) {
         try {
             if (Files.notExists(path)) {
                 Files.createDirectories(path.toAbsolutePath().getParent());
@@ -59,6 +59,39 @@ record ModConfig(String ignorePaintingsInCycleIdentifier, boolean showRegistered
             CyclePaintings.LOGGER.warn("[Cycle Paintings] Could not load config {}. Existing files are preserved.",
                     path, exception);
             return new LoadResult(DEFAULT, false);
+        }
+    }
+
+    static synchronized ModConfig forEditing(Path path) throws IOException {
+        var result = loadResult(path);
+        if (!result.success()) throw new IOException("Cannot read configuration. Existing file preserved.");
+        return result.config();
+    }
+
+    static synchronized void save(Path path, ModConfig edited) throws IOException {
+        if (edited.ignorePaintingsInCycleIdentifier() == null)
+            throw new IllegalArgumentException("The painting exclusion list must be a string.");
+        JsonObject json = new JsonObject();
+        if (Files.exists(path)) {
+            // Reject invalid existing data; never silently replace a broken config from the GUI.
+            forEditing(path);
+            json = JsonParser.parseString(Files.readString(path)).getAsJsonObject();
+        }
+        json.addProperty("ignorePaintingsInCycleIdentifier", edited.ignorePaintingsInCycleIdentifier());
+        json.addProperty("showRegisteredPaintingsDebug", edited.showRegisteredPaintingsDebug());
+        Path parent = path.toAbsolutePath().getParent();
+        Files.createDirectories(parent);
+        Path temporary = Files.createTempFile(parent, "cycle_paintings-", ".tmp");
+        try {
+            Files.writeString(temporary, new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(json) + "\n");
+            try {
+                Files.move(temporary, path, java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            } catch (java.nio.file.AtomicMoveNotSupportedException exception) {
+                Files.move(temporary, path, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+        } finally {
+            Files.deleteIfExists(temporary);
         }
     }
 

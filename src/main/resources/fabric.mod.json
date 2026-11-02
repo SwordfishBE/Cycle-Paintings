@@ -13,7 +13,10 @@
   "license": "AGPL-3.0",
   "icon": "assets/cycle_paintings/icon.png",
   "environment": "*",
-  "entrypoints": { "main": ["net.cycle_paintings.CyclePaintings"] },
+  "entrypoints": {
+    "main": ["net.cycle_paintings.CyclePaintings"],
+    "modmenu": ["net.cycle_paintings.CyclePaintingsModMenu"]
+  },
   "depends": {
     "fabricloader": ">=0.20.1",
     "minecraft": ">=26.4-alpha.6 <=26.4",
@@ -21,5 +24,5 @@
     "fabric-api": ">=0.165.1+26.4"
   },
   "breaks": { "cyclepaintings": "*" },
-  "suggests": { "modmenu": "*" }
+  "suggests": { "modmenu": "*", "cloth-config": "*" }
 }

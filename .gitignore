@@ -5,3 +5,5 @@ reference-*/
 .idea/
 *.iml
 build-verification.log
+client-verification.log
+client-without-cloth.log
